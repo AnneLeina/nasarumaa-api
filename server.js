@@ -25,9 +25,11 @@ const pool = new Pool({
   port: parseInt(process.env.DB_PORT) || 5432,
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
-
 pool.on('connect', () => {
   console.log('✅ Database connected successfully!');
 });
