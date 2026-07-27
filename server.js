@@ -30,6 +30,16 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 });
+console.log('🔧 Pool config:');
+console.log(`  Host: ${process.env.DB_HOST}`);
+console.log(`  User: ${process.env.DB_USER}`);
+console.log(`  DB: ${process.env.DB_NAME}`);
+console.log(`  Port: ${process.env.DB_PORT}`);
+console.log(`  Password: ${process.env.DB_PASSWORD ? '***SET***' : '❌ NOT SET'}`);
+
+pool.on('error', (err) => {
+  console.error('❌ POOL ERROR:', err.message);
+});
 pool.on('connect', () => {
   console.log('✅ Database connected successfully!');
 });
