@@ -1,7 +1,15 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const dns = require('dns');
 require('dotenv').config();
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  console.log('🔧 DNS configured to prefer IPv4');
+} catch (err) {
+  console.warn('⚠️ Could not set DNS result order:', err.message);
+}
 
 // Diagnostic helper: mask sensitive values when logging
 function maskValue(val) {
