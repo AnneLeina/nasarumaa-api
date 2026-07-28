@@ -58,11 +58,11 @@ if (!connectionString) {
 }
 
 console.log('🔍 Connecting to:', process.env.DATABASE_URL ? 'DATABASE_URL set' : '❌ DATABASE_URL not set');
-console.log(`  Host: ${process.env.DB_HOST}`);
-console.log(`  User: ${process.env.DB_USER}`);
-console.log(`  DB: ${process.env.DB_NAME}`);
-console.log(`  Port: ${process.env.DB_PORT}`);
-console.log(`  Password: ${process.env.DB_PASSWORD ? '***SET***' : '❌ NOT SET'}`);
+console.log(`  Host: ${resolvedDbHost}`);
+console.log(`  User: ${resolvedDbUser}`);
+console.log(`  DB: ${resolvedDbName}`);
+console.log(`  Port: ${resolvedDbPort}`);
+console.log(`  Password: ${resolvedDbPassword ? '***SET***' : '❌ NOT SET'}`);
 
 const pool = new Pool({
   connectionString,
