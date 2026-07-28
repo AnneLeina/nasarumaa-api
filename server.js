@@ -3,6 +3,30 @@ const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
 
+// Diagnostic helper: mask sensitive values when logging
+function maskValue(val) {
+  if (!val) return '❌ NOT SET';
+  try {
+    const s = String(val);
+    if (s.length <= 4) return '***';
+    return s.slice(0, 2) + '***' + s.slice(-2);
+  } catch (e) {
+    return '***';
+  }
+}
+
+// Log which DB-related env vars are present (masked)
+console.log('🔎 ENV DIAGNOSTIC:');
+const dbKeys = Object.keys(process.env).filter(k => k.includes('DB') || k === 'DATABASE_URL' || k === 'NODE_ENV');
+if (dbKeys.length === 0) {
+  console.log('  No DB-related environment variables detected');
+} else {
+  dbKeys.forEach(k => {
+    const v = process.env[k];
+    console.log(`  ${k}: ${k.toLowerCase().includes('password') ? maskValue(v) : (v ? v : '❌ NOT SET')}`);
+  });
+}
+
 const app = express();
 
 // Middleware
@@ -17,28 +41,25 @@ console.log(`  Database: ${process.env.DB_NAME}`);
 console.log(`  Port: ${process.env.DB_PORT}`);
 console.log(`  Password set: ${process.env.DB_PASSWORD ? 'YES' : 'NO - THIS IS THE PROBLEM'}`);
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'postgres',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
-console.log('🔧 Pool config:');
+const connectionString = process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME
+  ? `postgresql://${encodeURIComponent(process.env.DB_USER)}:${encodeURIComponent(process.env.DB_PASSWORD || '')}@${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`
+  : null);
+
+if (!connectionString) {
+  console.error('❌ No DATABASE_URL or DB_* environment variables found. Set DATABASE_URL or DB_HOST/DB_USER/DB_NAME/DB_PASSWORD.');
+  process.exit(1);
+}
+
+console.log('🔍 Connecting to:', process.env.DATABASE_URL ? 'DATABASE_URL set' : '❌ DATABASE_URL not set');
 console.log(`  Host: ${process.env.DB_HOST}`);
 console.log(`  User: ${process.env.DB_USER}`);
 console.log(`  DB: ${process.env.DB_NAME}`);
 console.log(`  Port: ${process.env.DB_PORT}`);
 console.log(`  Password: ${process.env.DB_PASSWORD ? '***SET***' : '❌ NOT SET'}`);
 
-pool.on('error', (err) => {
-  console.error('❌ POOL ERROR:', err.message);
+const pool = new Pool({
+  connectionString,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 pool.on('connect', () => {
   console.log('✅ Database connected successfully!');
