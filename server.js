@@ -34,12 +34,19 @@ app.use(cors());
 app.use(express.json());
 
 // PostgreSQL Connection Pool
+const dbUrl = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
+const resolvedDbHost = process.env.DB_HOST || dbUrl?.hostname;
+const resolvedDbUser = process.env.DB_USER || dbUrl?.username;
+const resolvedDbName = process.env.DB_NAME || (dbUrl ? dbUrl.pathname.replace(/^\//, '') : undefined);
+const resolvedDbPort = process.env.DB_PORT || dbUrl?.port || '5432';
+const resolvedDbPassword = process.env.DB_PASSWORD || (dbUrl?.password ? '***SET***' : undefined);
+
 console.log('🔍 Connection config:');
-console.log(`  Host: ${process.env.DB_HOST}`);
-console.log(`  User: ${process.env.DB_USER}`);
-console.log(`  Database: ${process.env.DB_NAME}`);
-console.log(`  Port: ${process.env.DB_PORT}`);
-console.log(`  Password set: ${process.env.DB_PASSWORD ? 'YES' : 'NO - THIS IS THE PROBLEM'}`);
+console.log(`  Host: ${resolvedDbHost}`);
+console.log(`  User: ${resolvedDbUser}`);
+console.log(`  Database: ${resolvedDbName}`);
+console.log(`  Port: ${resolvedDbPort}`);
+console.log(`  Password set: ${resolvedDbPassword ? 'YES' : 'NO - THIS IS THE PROBLEM'}`);
 
 const connectionString = process.env.DATABASE_URL || (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME
   ? `postgresql://${encodeURIComponent(process.env.DB_USER)}:${encodeURIComponent(process.env.DB_PASSWORD || '')}@${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`
