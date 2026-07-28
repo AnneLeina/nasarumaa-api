@@ -72,17 +72,58 @@ console.log(`  DB: ${resolvedDbName}`);
 console.log(`  Port: ${resolvedDbPort}`);
 console.log(`  Password: ${resolvedDbPassword ? '***SET***' : '❌ NOT SET'}`);
 
-const pool = new Pool({
-  connectionString,
+const poolConfig = {
+  host: resolvedDbHost,
+  port: Number(resolvedDbPort || 5432),
+  user: resolvedDbUser,
+  password: process.env.DB_PASSWORD || dbUrl?.password,
+  database: resolvedDbName,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
-pool.on('connect', () => {
-  console.log('✅ Database connected successfully!');
-});
+};
 
-pool.on('error', (err) => {
-  console.error('❌ Pool error - Code:', err.code, 'Message:', err.message);
-});
+if (!poolConfig.host || !poolConfig.user || !poolConfig.password || !poolConfig.database) {
+  console.error('❌ Incomplete database configuration. Check DATABASE_URL or DB_* env vars.');
+  process.exit(1);
+}
+
+async function createPool() {
+  let poolHost = poolConfig.host;
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const lookupResult = await dns.promises.lookup(poolHost, { family: 4 });
+      poolHost = lookupResult.address;
+      console.log('🔧 Resolved database host to IPv4:', poolHost);
+    } catch (err) {
+      console.warn('⚠️ IPv4 lookup failed, using original host:', err.message);
+    }
+  }
+
+  const pool = new Pool({
+    ...poolConfig,
+    host: poolHost
+  });
+
+  pool.on('connect', () => {
+    console.log('✅ Database connected successfully!');
+  });
+
+  pool.on('error', (err) => {
+    console.error('❌ Pool error - Code:', err.code, 'Message:', err.message);
+  });
+
+  return pool;
+}
+
+let pool;
+
+(async () => {
+  pool = await createPool();
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}/api/products`);
+  });
+})();
 
 // TEST ENDPOINT
 app.get('/api/test', (req, res) => {
